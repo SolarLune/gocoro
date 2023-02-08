@@ -65,7 +65,8 @@ func (co *Coroutine) Running() bool {
 	return co.running.Load()
 }
 
-// Update waits for the Coroutine to pause, either as a yield or when the Coroutine is finished.
+// Update waits for the Coroutine to pause, either as a yield or when the Coroutine is finished. If the
+// Coroutine isn't running anymore, Update doesn't do anything.
 func (co *Coroutine) Update() {
 	if co.running.Load() {
 		<-co.execute // Wait to pull from the execute channel, indicating the coroutine can run
@@ -73,9 +74,9 @@ func (co *Coroutine) Update() {
 	}
 }
 
-// Stop stops running the Coroutine and allows the CoroutineExecution to pick up on it to end gracefully.
-// This does not kill the coroutine, which runs in a goroutine - you'll need to detect this and
-// end the coroutine yourself.
+// Stop stops running the Coroutine and allows the CoroutineExecution to pick up on this fact to end gracefully.
+// Note that this does not kill the coroutine, which internally runs in a goroutine - you'll need to detect this and
+// end the coroutine from the coroutine function yourself.
 func (co *Coroutine) Stop() {
 	wasRunning := co.running.Load()
 	co.running.Store(false)
@@ -107,8 +108,8 @@ func (exe *Execution) Yield() error {
 
 }
 
-// Stopped returns true if the coroutine was requested to be stopped. You can check this in your coroutine to exit early and
-// clean up the coroutine as desired.
+// Stopped returns true if the coroutine was requested to be stopped through Coroutine.Stop(). You can check this in your
+// coroutine to exit early and clean up the coroutine as desired.
 func (exe *Execution) Stopped() bool {
 	return !exe.coroutine.Running()
 }
@@ -116,7 +117,7 @@ func (exe *Execution) Stopped() bool {
 // Wait waits the specified duration time, yielding execution in the Coroutine if the time has yet to elapse.
 // Note that this function only checks the time in increments of however long the calling thread takes between calling Coroutine.Update().
 // So, for example, if Coroutine.Update() is run, say, once every 20 milliseconds, then that's the fidelity of your waiting duration.
-// If the Coroutine has exited already, then this will immediately return with ErrorCoroutineStopped.
+// If the Coroutine has stopped prematurely, then this will immediately return with ErrorCoroutineStopped.
 func (exe *Execution) Wait(duration time.Duration) error {
 	start := time.Now()
 	for {
@@ -133,7 +134,7 @@ func (exe *Execution) Wait(duration time.Duration) error {
 
 // WaitTicks waits the specified number of ticks, yielding execution if the number of ticks have yet to elapse. A tick is defined by one instance
 // of Coroutine.Update() being called.
-// If the Coroutine has exited already, then this will immediately return with ErrorCoroutineStopped.
+// If the Coroutine has stopped prematurely, then this will immediately return with ErrorCoroutineStopped.
 func (exe *Execution) WaitTicks(tickCount int) error {
 	for {
 
@@ -151,7 +152,7 @@ func (exe *Execution) WaitTicks(tickCount int) error {
 }
 
 // WaitUntil pauses the Coroutine until the provided Completer's Done() function returns true.
-// If the Coroutine has exited already, then this will immediately return with ErrorCoroutineStopped.
+// If the Coroutine has stopped prematurely, then this will immediately return with ErrorCoroutineStopped.
 func (exe *Execution) WaitUntil(completer Completer) error {
 
 	for {
@@ -168,7 +169,7 @@ func (exe *Execution) WaitUntil(completer Completer) error {
 }
 
 // Do pauses the running Coroutine until the provided function returns true.
-// If the Coroutine has exited already, then this will immediately return with ErrorCoroutineStopped.
+// If the Coroutine has stopped prematurely, then this will immediately return with ErrorCoroutineStopped.
 func (exe *Execution) Do(doFunc func() bool) error {
 
 	for {
