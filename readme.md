@@ -18,7 +18,7 @@ Because coroutines are cool and useful, and Go has almost everything necessary f
 
 ```go
 
-func script(exe gocoro.Execution) {
+func script(exe *gocoro.Execution) {
 
     // Use the Execution object to pause and wait for three seconds.
     exe.Wait(time.Second * 3)

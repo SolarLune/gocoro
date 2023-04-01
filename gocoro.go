@@ -13,17 +13,22 @@ type Coroutine struct {
 	running   *atomic.Bool
 	yield     chan bool
 	execute   chan bool
-	Execution *Execution
+	execution *Execution
+	finished  *atomic.Bool
+
+	OnStart  func() // OnStart is a callback to a function called before the coroutine starts.
+	OnFinish func() // OnFinish is a callback to a function called after the coroutine finishes.
 }
 
 // NewCoroutine creates and returns a new Coroutine instance.
 func NewCoroutine() Coroutine {
 	co := Coroutine{
-		yield:   make(chan bool),
-		execute: make(chan bool),
-		running: &atomic.Bool{},
+		yield:    make(chan bool),
+		execute:  make(chan bool),
+		running:  &atomic.Bool{},
+		finished: &atomic.Bool{},
 	}
-	co.Execution = &Execution{coroutine: &co}
+	co.execution = &Execution{coroutine: &co}
 	return co
 }
 
@@ -33,7 +38,13 @@ func NewCoroutine() Coroutine {
 // Run will return an error if the coroutine is already running.
 func (co *Coroutine) Run(coroutineFunc func(exe *Execution)) error {
 
-	if !co.running.Load() {
+	co.finished.Store(false)
+
+	if co.running.CompareAndSwap(false, true) {
+
+		if co.OnStart != nil {
+			co.OnStart()
+		}
 
 		co.running.Store(true)
 
@@ -43,13 +54,13 @@ func (co *Coroutine) Run(coroutineFunc func(exe *Execution)) error {
 			// Send something on execute first so the script doesn't update until we
 			// call Coroutine.Update() the first time.
 			co.execute <- true
-			co.routine(co.Execution)
-			wasRunning := co.running.Load()
-			co.running.Store(false)
+			co.routine(co.execution)
 			// If the coroutine wasn't running anymore, then we shouldn't push anything to yield to unblock the coroutine at the end
-			if wasRunning {
+			if co.running.CompareAndSwap(true, false) {
 				co.yield <- true
 			}
+			co.finished.Store(true)
+
 		}()
 
 		return nil
@@ -72,6 +83,13 @@ func (co *Coroutine) Update() {
 		<-co.execute // Wait to pull from the execute channel, indicating the coroutine can run
 		<-co.yield   // Wait to pull from the yield channel, indicating the coroutine has paused / finished
 	}
+
+	if co.finished.CompareAndSwap(true, false) {
+		if co.OnFinish != nil {
+			co.OnFinish()
+		}
+	}
+
 }
 
 // Stop stops running the Coroutine and allows the CoroutineExecution to pick up on this fact to end gracefully.
