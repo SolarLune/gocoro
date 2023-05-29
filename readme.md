@@ -4,7 +4,11 @@ gocoro is a package for basic coroutines for Go. The primary reason I made this 
 
 ## What's a coroutine?
 
-Normally, a coroutine is just a function that you can pause and resume execution on at will (or possibly even freely jump around at will). Coroutines could have a variety of uses, but are particularly good for scripting cutscenes in games because cutscenes frequently pause and pick up execution (for example, when waiting for some amount of time, displaying a message window, or animating or moving characters to another location).
+Normally, a coroutine is just a function that you can pause and resume execution on at will (or possibly even freely jump around at will). Coroutines could have a variety of uses, but are particularly good for scripting cutscenes in games because cutscenes frequently pause and pick up execution (for example, when a cutscene, say, waits a certain amount of time, the game isn't frozen, but rather continues playing audio, taking input, and updating the screen. The coroutine is running and waiting, but the game continues).
+
+## What's a gocoro.Coroutine?
+
+Internally, a `*gocoro.Coroutine` is just a goroutine running a customizeable function. This means that it probably would execute on another thread (as to the Go runtime's determinations). However, gocoro uses a channel to alternately block execution on the calling thread or the coroutine thread, allowing you to pause execution and resume it at will. Because only one thread out of the two is active at any given time, there's no opportunity for race conditions if they touch the same data; this means that gocoro's Coroutines should be inherently thread-safe.
 
 ## Why did you make this package?
 
@@ -33,27 +37,27 @@ func main() {
     co := gocoro.NewCoroutine()
 
     // Run the script, which is just an ordinary function pointer that takes
-    // an execution object, which is used to control coroutine execution.
+    // an execution object, which is automatically provided when a Coroutine is 
+    // running and is used to control coroutine execution.
+    // You can pass extra arguments to the function through the Run command as well.
     co.Run(script)
     
     for co.Running() {
 
         // While the coroutine runs, we call Coroutine.Update(). This allows
         // the coroutine to execute, but also gives control back to the main
-        // thread when it's yielding so we can do other stuff.
+        // thread when it's yielding so we can do other stuff, like take input
+        // or update a game's screen.
         co.Update()
 
     }
 
-    // We're done with the coroutine!
+    // After Running() is over, we're done with the coroutine! Of course, you can just check
+    // this with an if statement, rather than a for statement.
 
 }
 
 ```
-
-## What's a gocoro.Coroutine?
-
-Internally, a `*gocoro.Coroutine` is just a goroutine running a customizeable function. This means that it executes on another thread. However, gocoro uses a channel to alternately block execution on the calling thread or the coroutine thread, allowing you to pause execution and resume it at will. Because the operating thread alternates between the two, there's no opportunity for race conditions if they both touch the same data.
 
 ## Anything else?
 

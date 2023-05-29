@@ -7,26 +7,28 @@ import (
 	"github.com/solarlune/gocoro"
 )
 
-var gameFrame int
+var tickCount int
 var progress = -1
 var maxProgress = 20
 
-// Here's the coroutine function to run in our Coroutine. It takes an execution object that
-// allows us to do some easy coroutine manipulation (yield, wait until something happens, etc).
+// Here's the coroutine function to run in our Coroutine. It takes an Execution object that is automatically
+// created and passed to the coroutine function by Coroutine.Run(). The Execution object allows us to do some
+// easy coroutine manipulation (yield, wait until something happens, etc).
 // If we want to pause execution, we can call Execution.Yield(). If we want to end execution early,
 // just return from the function like usual. If you want to end execution from *outside* this function
-// (i.e. with Coroutine.Kill()), then you can pick up on that through Execution.Killed() and return early.
+// (i.e. with Coroutine.Stop()), then you need to receive that signal by checking Execution.Stopped() from within
+// the coroutine function, and return early.
 func coroutineFunction(exe *gocoro.Execution) {
 
-	fmt.Printf("\nFrame #%d: Let's start the script and wait three seconds.\n", gameFrame)
+	fmt.Printf("\nTick #%d: Let's start the script and wait three seconds.\n", tickCount)
 
 	exe.Wait(time.Second * 3)
 
-	fmt.Printf("\nFrame #%d: Excellent! Let's wait 35 ticks this time.\n", gameFrame)
+	fmt.Printf("\nTick #%d: Excellent! Let's wait 35 ticks this time.\n", tickCount)
 
 	exe.WaitTicks(35)
 
-	fmt.Printf("\nFrame #%d: Let's fill this progress bar:\n", gameFrame)
+	fmt.Printf("\nTick #%d: Let's fill this progress bar:\n", tickCount)
 
 	exe.Wait(time.Second * 2)
 
@@ -39,11 +41,11 @@ func coroutineFunction(exe *gocoro.Execution) {
 
 	progress = -1
 
-	fmt.Printf("\nFrame #%d: Excellent, again!\n", gameFrame)
+	fmt.Printf("\nTick #%d: Excellent, again!\n", tickCount)
 
 	exe.Wait(time.Second)
 
-	fmt.Printf("\nFrame #%d: OK, script's over, let's go home!\n", gameFrame)
+	fmt.Printf("\nTick #%d: OK, script's over, let's go home!\n", tickCount)
 
 	exe.Wait(time.Second)
 
@@ -55,13 +57,14 @@ func main() {
 	co := gocoro.NewCoroutine()
 
 	// Run the script. It actually will technically only start when we call Coroutine.Update() below.
+	// If we want, we can pass arguments through Coroutine.Run().
 	co.Run(coroutineFunction)
 
-	// co.Running is thread-safe
+	// Coroutine.Running() is thread-safe, as with all of the functions.
 	for co.Running() {
 
 		// Update the script. This function call will run the coroutine thread for as long as is necessary,
-		// until it either yields or finishes.
+		// until it either yields (where it will continue the next time Update() is called) or finishes.
 		co.Update()
 
 		fmt.Print(".")
@@ -82,7 +85,7 @@ func main() {
 			fmt.Println(pro)
 		}
 
-		gameFrame++
+		tickCount++
 
 		time.Sleep(time.Millisecond * 100)
 

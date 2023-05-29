@@ -32,11 +32,12 @@ func NewCoroutine() Coroutine {
 	return co
 }
 
-// Run runs the given coroutine function. Note that the function takes the Coroutine
-// as an argument to allow for a variety of methods of defining this function (as a
-// literal in the Run() function call, as a pointer to a pre-defined function, etc).
+// Run runs the given coroutine function.
+// Any arguments passed along will be available to the script through the Execution object.
 // Run will return an error if the coroutine is already running.
-func (co *Coroutine) Run(coroutineFunc func(exe *Execution)) error {
+func (co *Coroutine) Run(coroutineFunc func(exe *Execution), args ...interface{}) error {
+
+	co.execution.Args = args
 
 	co.finished.Store(false)
 
@@ -92,8 +93,8 @@ func (co *Coroutine) Update() {
 
 }
 
-// Stop stops running the Coroutine and allows the CoroutineExecution to pick up on this fact to end gracefully.
-// Note that this does not kill the coroutine, which internally runs in a goroutine - you'll need to detect this and
+// Stop signals a running Coroutine to stop; the Execution object needs to pick up on this fact to end gracefully.
+// Note that this does NOT kill the coroutine, as it internally runs in a goroutine - you'll need to detect this and
 // end the coroutine from the coroutine function yourself.
 func (co *Coroutine) Stop() {
 	wasRunning := co.running.Load()
@@ -108,6 +109,7 @@ var ErrorCoroutineStopped = errors.New("Coroutine requested to be stopped")
 // Execution represents a means to easily and simply manipulate coroutine execution from your running coroutine function.
 type Execution struct {
 	coroutine *Coroutine
+	Args      []interface{} // Args is a slice of interface{} objects, and contains whatever was passed through *Coroutine.Run() when a coroutine was first started.
 }
 
 // Yield yields execution in the coroutine function, allowing the main / calling thread to continue.
