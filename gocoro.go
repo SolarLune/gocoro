@@ -104,6 +104,12 @@ func (co *Coroutine) Stop() {
 	}
 }
 
+// Stopped returns true if the coroutine was requested to be stopped through Coroutine.Stop(). You can check this in your
+// coroutine to exit early and clean up the coroutine as desired.
+func (exe *Execution) Stopped() bool {
+	return !exe.coroutine.Running()
+}
+
 var ErrorCoroutineStopped = errors.New("Coroutine requested to be stopped")
 
 // Execution represents a means to easily and simply manipulate coroutine execution from your running coroutine function.
@@ -128,17 +134,11 @@ func (exe *Execution) Yield() error {
 
 }
 
-// Stopped returns true if the coroutine was requested to be stopped through Coroutine.Stop(). You can check this in your
-// coroutine to exit early and clean up the coroutine as desired.
-func (exe *Execution) Stopped() bool {
-	return !exe.coroutine.Running()
-}
-
-// Wait waits the specified duration time, yielding execution in the Coroutine if the time has yet to elapse.
+// YieldTime yields execution of the Coroutine for the specified duration time.
 // Note that this function only checks the time in increments of however long the calling thread takes between calling Coroutine.Update().
 // So, for example, if Coroutine.Update() is run, say, once every 20 milliseconds, then that's the fidelity of your waiting duration.
 // If the Coroutine has stopped prematurely, then this will immediately return with ErrorCoroutineStopped.
-func (exe *Execution) Wait(duration time.Duration) error {
+func (exe *Execution) YieldTime(duration time.Duration) error {
 	start := time.Now()
 	for {
 
@@ -152,10 +152,11 @@ func (exe *Execution) Wait(duration time.Duration) error {
 	}
 }
 
-// WaitTicks waits the specified number of ticks, yielding execution if the number of ticks have yet to elapse. A tick is defined by one instance
-// of Coroutine.Update() being called.
+// YieldTicks yields execution of the Coroutine for the specified number of ticks.
+// A tick is defined by one instance of Coroutine.Update() being called.
 // If the Coroutine has stopped prematurely, then this will immediately return with ErrorCoroutineStopped.
-func (exe *Execution) WaitTicks(tickCount int) error {
+func (exe *Execution) YieldTicks(tickCount int) error {
+
 	for {
 
 		if tickCount == 0 {
@@ -171,9 +172,9 @@ func (exe *Execution) WaitTicks(tickCount int) error {
 
 }
 
-// WaitUntil pauses the Coroutine until the provided Completer's Done() function returns true.
+// YieldCompleter pauses the Coroutine until the provided Completer's Done() function returns true.
 // If the Coroutine has stopped prematurely, then this will immediately return with ErrorCoroutineStopped.
-func (exe *Execution) WaitUntil(completer Completer) error {
+func (exe *Execution) YieldCompleter(completer Completer) error {
 
 	for {
 
@@ -188,9 +189,9 @@ func (exe *Execution) WaitUntil(completer Completer) error {
 
 }
 
-// Do pauses the running Coroutine until the provided function returns true.
+// YieldFunc yields the running Coroutine until the provided function returns true.
 // If the Coroutine has stopped prematurely, then this will immediately return with ErrorCoroutineStopped.
-func (exe *Execution) Do(doFunc func() bool) error {
+func (exe *Execution) YieldFunc(doFunc func() bool) error {
 
 	for {
 		if doFunc() {

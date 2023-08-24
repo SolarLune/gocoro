@@ -22,15 +22,15 @@ func coroutineFunction(exe *gocoro.Execution) {
 
 	fmt.Printf("\nTick #%d: Let's start the script and wait three seconds.\n", tickCount)
 
-	exe.Wait(time.Second * 3)
+	exe.YieldTime(time.Second * 3)
 
 	fmt.Printf("\nTick #%d: Excellent! Let's wait 35 ticks this time.\n", tickCount)
 
-	exe.WaitTicks(35)
+	exe.YieldTicks(35)
 
 	fmt.Printf("\nTick #%d: Let's fill this progress bar:\n", tickCount)
 
-	exe.Wait(time.Second * 2)
+	exe.YieldTime(time.Second * 2)
 
 	fmt.Println("")
 
@@ -43,11 +43,11 @@ func coroutineFunction(exe *gocoro.Execution) {
 
 	fmt.Printf("\nTick #%d: Excellent, again!\n", tickCount)
 
-	exe.Wait(time.Second)
+	exe.YieldTime(time.Second)
 
 	fmt.Printf("\nTick #%d: OK, script's over, let's go home!\n", tickCount)
 
-	exe.Wait(time.Second)
+	exe.YieldTime(time.Second)
 
 }
 

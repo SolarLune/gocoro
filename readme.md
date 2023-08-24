@@ -24,8 +24,8 @@ Because coroutines are cool and useful, and Go has almost everything necessary f
 
 func script(exe *gocoro.Execution) {
 
-    // Use the Execution object to pause and wait for three seconds.
-    exe.Wait(time.Second * 3)
+    // Use the Execution object to yield execution and wait for three seconds.
+    exe.YieldTime(time.Second * 3)
 
     fmt.Println("Three seconds have elapsed!")
 
