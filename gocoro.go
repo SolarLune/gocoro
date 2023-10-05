@@ -9,12 +9,13 @@ import (
 // Coroutine represents a coroutine that executes alternately with the main / calling
 // thread.
 type Coroutine struct {
-	routine   func(*Execution)
-	running   *atomic.Bool
-	yield     chan bool
-	execute   chan bool
-	execution *Execution
-	finished  *atomic.Bool
+	routine    func(*Execution)
+	running    *atomic.Bool
+	yield      chan bool
+	execute    chan bool
+	execution  *Execution
+	finished   *atomic.Bool
+	Properties *Properties // A set of properties that allows you to interface with a running coroutine. Linked through the running Execution.
 
 	OnStart  func() // OnStart is a callback to a function called before the coroutine starts.
 	OnFinish func() // OnFinish is a callback to a function called after the coroutine finishes.
@@ -28,16 +29,15 @@ func NewCoroutine() Coroutine {
 		running:  &atomic.Bool{},
 		finished: &atomic.Bool{},
 	}
-	co.execution = &Execution{coroutine: &co}
+	co.execution = &Execution{coroutine: &co, Properties: newProperties()}
+	co.Properties = co.execution.Properties
 	return co
 }
 
 // Run runs the given coroutine function.
 // Any arguments passed along will be available to the script through the Execution object.
 // Run will return an error if the coroutine is already running.
-func (co *Coroutine) Run(coroutineFunc func(exe *Execution), args ...interface{}) error {
-
-	co.execution.Args = args
+func (co *Coroutine) Run(coroutineFunc func(exe *Execution)) error {
 
 	co.finished.Store(false)
 
@@ -104,18 +104,18 @@ func (co *Coroutine) Stop() {
 	}
 }
 
-// Stopped returns true if the coroutine was requested to be stopped through Coroutine.Stop(). You can check this in your
-// coroutine to exit early and clean up the coroutine as desired.
-func (exe *Execution) Stopped() bool {
-	return !exe.coroutine.Running()
-}
-
 var ErrorCoroutineStopped = errors.New("Coroutine requested to be stopped")
 
 // Execution represents a means to easily and simply manipulate coroutine execution from your running coroutine function.
 type Execution struct {
-	coroutine *Coroutine
-	Args      []interface{} // Args is a slice of interface{} objects, and contains whatever was passed through *Coroutine.Run() when a coroutine was first started.
+	coroutine  *Coroutine
+	Properties *Properties // A set of properties that allows you to interface with the running coroutine object.
+}
+
+// Stopped returns true if the coroutine was requested to be stopped through Coroutine.Stop(). You can check this in your
+// coroutine to exit early and clean up the coroutine as desired.
+func (exe *Execution) Stopped() bool {
+	return !exe.coroutine.Running()
 }
 
 // Yield yields execution in the coroutine function, allowing the main / calling thread to continue.
@@ -209,4 +209,29 @@ func (exe *Execution) YieldFunc(doFunc func() bool) error {
 // If the Completer's Done() function returns true, then the Coroutine will advance.
 type Completer interface {
 	Done() bool
+}
+
+// Properties represents a simple map of strings to values. Properties can be used to interface between
+// a Coroutine object and its running coroutine function through the Execution object.
+type Properties map[string]any
+
+func newProperties() *Properties {
+	return &Properties{}
+}
+
+func (p *Properties) Set(name string, value any) {
+	(*p)[name] = value
+}
+
+func (p Properties) Get(name string) any {
+	value := p[name]
+	return value
+}
+
+func (p *Properties) Delete(name string) {
+	delete(*p, name)
+}
+
+func (p *Properties) Clear() {
+	*p = map[string]any{}
 }
