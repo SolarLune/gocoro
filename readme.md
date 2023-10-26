@@ -1,4 +1,8 @@
-# gocoro 🏃‍♂️ ➡️ 🧍‍♂️
+10/25/23: Development on gocoro has been discontinued to be superceded by another repo for scripting event sequences for game development, [routine](https://github.com/solarlune/routine). This is due to a fundamental problem that cannot easily be solved in function execution (which is that functions cannot easily be exited from external to the coroutine). While my personal development and testing revealed that `runtime.Goexit()` could be used to quit running coroutines while they're running, in practice for game development (at least when using Ebitengine), accessing data from various goroutines (even if they're not running at the same time) may still lead to timing issues. This might be because Ebitengine modifies data internally from another goroutine. 
+
+It might be possible to bypass the issues I've run into, but for now, I think it best to pursue for a less esoteric solution for simply and less "magically" scripting events.
+
+# gocoro 🏃‍♂️ ➡️ 🧍
 
 gocoro is a package for basic coroutines for Go. The primary reason I made this was for creating cutscenes for gamedev with Go.
 
